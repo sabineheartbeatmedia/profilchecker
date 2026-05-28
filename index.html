@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instagram Profilcheck · heartbeatmedia</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Dancing+Script:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #FAF8F5;
+    --surface: #ffffff;
+    --border: #E2D6C7;
+    --accent: #F7C948;
+    --green: #657165;
+    --sage: #B6CFC0;
+    --blush: #d5c0c6;
+    --sand: #E2D6C7;
+    --text: #1a1a1a;
+    --text-muted: #657165;
+    --text-dim: #b0a89e;
+    --red: #c0624a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .container { max-width: 700px; margin: 0 auto; padding: 0 28px; }
+
+  header { padding: 56px 0 44px; text-align: center; border-bottom: 1px solid var(--border); }
+
+  .eyebrow { font-family: 'Dancing Script', cursive; font-size: 18px; color: var(--green); margin-bottom: 18px; }
+
+  h1 { font-family: 'Playfair Display', serif; font-size: clamp(34px, 6vw, 54px); font-weight: 900; line-height: 1.08; margin-bottom: 14px; }
+
+  h1 em { font-style: italic; color: var(--green); }
+
+  .accent-dot { display: inline-block; width: 10px; height: 10px; background: var(--accent); border-radius: 50%; margin-left: 4px; vertical-align: middle; position: relative; top: -4px; }
+
+  .subtitle { font-size: 15px; color: var(--text-muted); max-width: 420px; margin: 0 auto; line-height: 1.65; }
+
+  .form-section { padding: 48px 0; }
+  .field-group { margin-bottom: 24px; }
+
+  label { display: block; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--green); margin-bottom: 8px; font-weight: 500; }
+  label span { color: var(--text-dim); font-size: 10px; margin-left: 8px; text-transform: none; letter-spacing: 0; font-weight: 300; }
+
+  textarea, input[type="text"] { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 300; padding: 14px 16px; border-radius: 3px; resize: vertical; outline: none; transition: border-color 0.2s; line-height: 1.65; }
+  textarea:focus, input:focus { border-color: var(--green); }
+  textarea::placeholder, input::placeholder { color: var(--text-dim); }
+  textarea { min-height: 88px; }
+
+  .btn-analyze { width: 100%; background: var(--accent); color: #1a1a1a; border: none; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; padding: 18px; cursor: pointer; transition: opacity 0.2s; border-radius: 3px; margin-top: 8px; }
+  .btn-analyze:hover { opacity: 0.9; }
+  .btn-analyze:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .loading-state { display: none; text-align: center; padding: 72px 0; }
+  .loader { display: inline-flex; gap: 7px; margin-bottom: 24px; }
+  .loader span { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; animation: pulse 1.2s ease-in-out infinite; }
+  .loader span:nth-child(2) { animation-delay: 0.2s; }
+  .loader span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%, 100% { opacity: 0.25; transform: scale(0.75); } 50% { opacity: 1; transform: scale(1); } }
+  .loading-text { font-size: 13px; letter-spacing: 0.12em; color: var(--text-muted); text-transform: uppercase; }
+
+  .results-section { display: none; padding-bottom: 80px; }
+
+  .score-block { padding: 40px 0; border-bottom: 1px solid var(--border); margin-bottom: 40px; display: flex; align-items: center; gap: 36px; }
+  .score-ring { flex-shrink: 0; width: 96px; height: 96px; position: relative; }
+  .score-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .score-ring .track { fill: none; stroke: var(--border); stroke-width: 5; }
+  .score-ring .fill { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset 1.3s cubic-bezier(0.4,0,0.2,1); stroke-dasharray: 270; stroke-dashoffset: 270; }
+  .score-number { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .score-number .num { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; line-height: 1; }
+  .score-number .denom { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+  .score-meta h2 { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .score-meta p { font-size: 14px; color: var(--text-muted); line-height: 1.65; }
+
+  .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 40px; }
+  .analysis-card { background: var(--surface); border: 1px solid var(--border); padding: 18px 20px; border-radius: 3px; opacity: 0; transform: translateY(10px); transition: opacity 0.4s, transform 0.4s; }
+  .analysis-card.visible { opacity: 1; transform: translateY(0); }
+  .card-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 5px; }
+  .card-score { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; margin-bottom: 5px; }
+  .card-score.good { color: var(--green); }
+  .card-score.mid { color: #c8922a; }
+  .card-score.bad { color: var(--red); }
+  .card-verdict { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+  .result-section { margin-bottom: 36px; opacity: 0; transform: translateY(10px); transition: opacity 0.5s, transform 0.5s; }
+  .result-section.visible { opacity: 1; transform: translateY(0); }
+
+  .section-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--green); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .section-label::before { content: ''; display: inline-block; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; flex-shrink: 0; }
+  .section-sub { font-size: 10px; color: var(--text-dim); text-transform: none; letter-spacing: 0; font-weight: 300; margin-left: auto; }
+
+  .weakness-list { display: flex; flex-direction: column; gap: 10px; }
+  .weakness-item { background: rgba(192,98,74,0.04); border: 1px solid rgba(192,98,74,0.15); border-left: 3px solid var(--red); padding: 14px 16px; border-radius: 0 3px 3px 0; font-size: 13px; line-height: 1.6; color: var(--text-muted); }
+  .weakness-item strong { display: block; color: var(--text); font-weight: 500; margin-bottom: 3px; }
+
+  .bio-list { display: flex; flex-direction: column; gap: 10px; }
+  .bio-item { background: rgba(182,207,192,0.15); border: 1px solid rgba(182,207,192,0.4); border-left: 3px solid var(--sage); padding: 16px 18px; border-radius: 0 3px 3px 0; font-size: 14px; line-height: 1.65; color: var(--text); cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+  .bio-item:hover { background: rgba(182,207,192,0.28); border-left-color: var(--green); }
+  .bio-item .copy-hint { font-size: 10px; color: var(--text-dim); margin-top: 6px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .bio-item.copied { border-left-color: var(--green); background: rgba(101,113,101,0.06); }
+  .bio-item.copied .copy-hint { color: var(--green); }
+  .bio-text { line-height: 1.8; white-space: pre-line; }
+
+  .name-list { display: flex; flex-direction: column; gap: 8px; }
+  .name-item { background: rgba(226,214,199,0.3); border: 1px solid var(--sand); border-left: 3px solid var(--green); padding: 12px 16px; border-radius: 0 3px 3px 0; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer; transition: background 0.2s; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .name-item:hover { background: rgba(226,214,199,0.5); }
+  .name-copy-hint { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; flex-shrink: 0; }
+  .name-item.copied .name-copy-hint { color: var(--green); }
+
+  .cta-list { display: flex; flex-direction: column; gap: 8px; }
+  .cta-item { background: rgba(213,192,198,0.15); border: 1px solid rgba(213,192,198,0.4); border-left: 3px solid var(--blush); padding: 14px 16px; border-radius: 0 3px 3px 0; font-size: 13px; line-height: 1.55; color: var(--text-muted); }
+  .cta-item strong { display: block; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--green); margin-bottom: 4px; font-weight: 500; }
+
+  .btn-reset { background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; padding: 13px 28px; cursor: pointer; transition: border-color 0.2s, color 0.2s; border-radius: 3px; margin-top: 24px; }
+  .btn-reset:hover { border-color: var(--green); color: var(--text); }
+
+  .btb-block { margin-top: 48px; background: var(--accent); border-radius: 4px; padding: 32px 28px; text-align: center; }
+  .btb-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(26,26,26,0.55); margin-bottom: 12px; }
+  .btb-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; line-height: 1.25; color: #1a1a1a; margin-bottom: 10px; }
+  .btb-title em { font-style: italic; }
+  .btb-text { font-size: 14px; color: rgba(26,26,26,0.65); line-height: 1.6; max-width: 380px; margin: 0 auto 22px; }
+  .btn-btb { display: inline-block; background: #1a1a1a; color: var(--accent); text-decoration: none; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; padding: 14px 28px; border-radius: 3px; transition: opacity 0.2s; }
+  .btn-btb:hover { opacity: 0.85; }
+
+  .footer-note { text-align: center; padding: 36px 0 20px; font-size: 11px; color: var(--text-dim); }
+  .footer-note a { color: var(--green); text-decoration: none; font-family: 'Dancing Script', cursive; font-size: 16px; }
+
+  @media (max-width: 540px) {
+    .analysis-grid { grid-template-columns: 1fr; }
+    .score-block { flex-direction: column; text-align: center; gap: 20px; }
+    h1 { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="eyebrow">heartbeatmedia · Sabine</div>
+    <h1>Instagram<br><em>Profilcheck</em><span class="accent-dot"></span></h1>
+    <p class="subtitle">Dein Profil hat 3 Sekunden, um zu erklären, wer du bist, für wen du da bist und warum es sich lohnt zu bleiben.</p>
+  </header>
+
+  <div class="form-section" id="formSection">
+    <div class="field-group">
+      <label>Deine Bio <span>— der Text in deinem Instagram-Profil</span></label>
+      <textarea id="bio" placeholder="z.B. ✦ Social Media Strategin für Selbstständige ✦ Ich helfe dir, auf Instagram sichtbar zu werden ✦ Kostenloser Redaktionsplan ↓" rows="3"></textarea>
+    </div>
+    <div class="field-group">
+      <label>Dein Instagram-Handle <span>— dein @-Name, ohne @</span></label>
+      <input type="text" id="profileName" placeholder="z.B. sabine_heartbeatmedia">
+    </div>
+    <div class="field-group">
+      <label>Dein Anzeigename <span>— der Name über deiner Bio</span></label>
+      <input type="text" id="displayName" placeholder="z.B. Sabine | Sichtbarkeit ohne Stress 💛">
+    </div>
+    <div class="field-group">
+      <label>Was bietest du an? <span>— kurz, 1–2 Sätze</span></label>
+      <textarea id="offer" placeholder="z.B. Ich helfe Selbstständigen dabei, auf Instagram Kunden zu gewinnen – mit System, nicht mit Zufall." rows="2"></textarea>
+    </div>
+    <div class="field-group">
+      <label>Dein Freebie oder Einstiegsangebot <span>— was soll der CTA bewerben?</span></label>
+      <input type="text" id="freebie" placeholder="z.B. Kostenfreier Redaktionsplan, Brand to Bio (37€), Strategie-Call">
+    </div>
+    <div class="field-group">
+      <label>Für wen? <span>— deine Zielgruppe</span></label>
+      <input type="text" id="target" placeholder="z.B. Selbstständige Frauen, die online sichtbar werden wollen">
+    </div>
+    <button class="btn-analyze" id="analyzeBtn" onclick="analyze()">Profil jetzt analysieren →</button>
+  </div>
+
+  <div class="loading-state" id="loadingState">
+    <div class="loader"><span></span><span></span><span></span></div>
+    <div class="loading-text" id="loadingText">Profil wird gelesen …</div>
+  </div>
+
+  <div class="results-section" id="resultsSection">
+    <div class="score-block">
+      <div class="score-ring">
+        <svg viewBox="0 0 100 100">
+          <circle class="track" cx="50" cy="50" r="43"/>
+          <circle class="fill" id="scoreFill" cx="50" cy="50" r="43"/>
+        </svg>
+        <div class="score-number">
+          <span class="num" id="scoreNum">–</span>
+          <span class="denom">/10</span>
+        </div>
+      </div>
+      <div class="score-meta">
+        <h2 id="scoreTitle">–</h2>
+        <p id="scoreSummary">–</p>
+      </div>
+    </div>
+
+    <div class="analysis-grid" id="analysisGrid"></div>
+
+    <div class="result-section" id="nameSection" style="display:none">
+      <div class="section-label">Profilname-Vorschläge</div>
+      <div class="name-list" id="nameList"></div>
+    </div>
+
+    <div class="result-section" id="weaknessSection">
+      <div class="section-label">Konkrete Schwachstellen</div>
+      <div class="weakness-list" id="weaknessList"></div>
+    </div>
+
+    <div class="result-section" id="bioSection">
+      <div class="section-label">Neue Bio-Vorschläge <span class="section-sub">tippe zum Kopieren</span></div>
+      <div class="bio-list" id="bioList"></div>
+    </div>
+
+    <div class="result-section" id="ctaSection">
+      <div class="section-label">Bessere CTA-Ideen</div>
+      <div class="cta-list" id="ctaList"></div>
+    </div>
+
+    <div class="btb-block">
+      <div class="btb-label">Nächster Schritt</div>
+      <h3 class="btb-title">Dein Fundament ist unklar?<br><em>Brand to Bio</em> ändert das.</h3>
+      <p class="btb-text">Bevor du Reichweite willst, brauchst du Relevanz. Und Relevanz beginnt im Profil.</p>
+      <a href="https://heartbeatmedia.at/brand-to-bio/" target="_blank" class="btn-btb">Brand to Bio entdecken →</a>
+    </div>
+
+    <button class="btn-reset" onclick="reset()">← Neuen Check starten</button>
+  </div>
+
+  <div class="footer-note">
+    Ein Tool von <a href="https://heartbeatmedia.at" target="_blank">heartbeatmedia.at</a> &nbsp;·&nbsp; Substanz schlägt Show.
+  </div>
+</div>
+
+<script>
+const loadingMessages = ["Profil wird gelesen …","Erste 3 Sekunden werden simuliert …","Zielgruppenklarheit wird bewertet …","Analyse wird zusammengestellt …"];
+
+function reset() {
+  document.getElementById('formSection').style.display = 'block';
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('resultsSection').style.display = 'none';
+  document.getElementById('analyzeBtn').disabled = false;
+  document.querySelectorAll('.result-section').forEach(el => el.classList.remove('visible'));
+  document.getElementById('nameSection').style.display = 'none';
+  document.querySelectorAll('.analysis-card').forEach(el => el.classList.remove('visible'));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function analyze() {
+  const bio = document.getElementById('bio').value.trim();
+  const profileName = document.getElementById('profileName').value.trim();
+  const displayName = document.getElementById('displayName').value.trim();
+  const offer = document.getElementById('offer').value.trim();
+  const freebie = document.getElementById('freebie').value.trim();
+  const target = document.getElementById('target').value.trim();
+
+  if (!bio && !profileName) {
+    const bioEl = document.getElementById('bio');
+    bioEl.style.borderColor = '#c0624a';
+    bioEl.focus();
+    setTimeout(() => bioEl.style.borderColor = '', 2000);
+    return;
+  }
+
+  document.getElementById('analyzeBtn').disabled = true;
+  document.getElementById('formSection').style.display = 'none';
+  document.getElementById('loadingState').style.display = 'block';
+
+  let msgIndex = 0;
+  const msgInterval = setInterval(() => {
+    msgIndex = (msgIndex + 1) % loadingMessages.length;
+    document.getElementById('loadingText').textContent = loadingMessages[msgIndex];
+  }, 2000);
+
+  const prompt = `Du bist Sabine, Instagram-Strategin bei heartbeatmedia.at. Dein Brand: ruhig dominant, präzise, analytisch. Du analysierst Instagram-Profile nach dem Fundament-Ansatz. Kein Coaching-Ton, keine Motivationssprache, keine Weichheit.
+
+Analysiere dieses Instagram-Profil:
+INSTAGRAM-HANDLE: ${profileName || '(nicht angegeben)'}
+ANZEIGENAME: ${displayName || '(nicht angegeben)'}
+BIO: ${bio || '(nicht angegeben)'}
+ANGEBOT: ${offer || '(nicht angegeben)'}
+FREEBIE / CTA-ZIEL: ${freebie || '(nicht angegeben)'}
+ZIELGRUPPE: ${target || '(nicht angegeben)'}
+
+Bewerte das Profil aus der Perspektive eines Besuchers mit 3 Sekunden Zeit. Antworte NUR mit einem JSON-Objekt, kein Markdown, keine Erklärungen.
+
+BIO-VORSCHLÄGE – PFLICHTFORMAT:
+Jede Bio besteht aus exakt 4 Zeilen. Jede Zeile beginnt mit einem eigenen Emoji.
+Zeile 1: Emoji + Was du tust
+Zeile 2: Emoji + Wie / USP
+Zeile 3: Emoji + Beweis oder Zielgruppe
+Zeile 4: Emoji + konkreter CTA (was bekommt die Person genau?)
+Max. 150 Zeichen gesamt. Zeilenumbruch mit \\n.
+VERBOTEN: "helfe dir", "begleite", "gemeinsam", "Leichtigkeit", "authentisch", "gratis", "kostenlos".
+
+{
+  "score": <1-10>,
+  "score_title": "<max 4 Wörter>",
+  "score_summary": "<1-2 Sätze>",
+  "dimensions": [
+    { "label": "Bio-Klarheit", "score": <1-10>, "verdict": "<1 Satz>" },
+    { "label": "Profilwirkung", "score": <1-10>, "verdict": "<1 Satz>" },
+    { "label": "Zielgruppenklarheit", "score": <1-10>, "verdict": "<1 Satz>" },
+    { "label": "Verständlichkeit", "score": <1-10>, "verdict": "<1 Satz>" }
+  ],
+  "weaknesses": [
+    { "title": "<Titel>", "detail": "<1-2 Sätze>" },
+    { "title": "<Titel>", "detail": "<1-2 Sätze>" },
+    { "title": "<Titel>", "detail": "<1-2 Sätze>" }
+  ],
+  "name_critique": "<Satz oder null>",
+  "name_proposals": ["<Handle 1>", "<Handle 2>", "<Handle 3>"],
+  "bio_proposals": [
+    "<Vorschlag 1: 4 Zeilen mit \\n>",
+    "<Vorschlag 2: 4 Zeilen mit \\n>",
+    "<Vorschlag 3: 4 Zeilen mit \\n>"
+  ],
+  "cta_ideas": [
+    { "label": "Freebie-CTA", "text": "<Text>" },
+    { "label": "Direkter Einstieg", "text": "<Text>" },
+    { "label": "Community", "text": "<Text>" }
+  ]
+}`;
+
+  try {
+    const res = await fetch('/.netlify/functions/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+
+    const data = await res.json();
+    const raw = data.content?.map(b => b.text || '').join('') || '';
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Kein JSON gefunden');
+    const result = JSON.parse(jsonMatch[0].replace(/,(\s*[}\]])/g, '$1'));
+
+    clearInterval(msgInterval);
+    document.getElementById('loadingState').style.display = 'none';
+    renderResults(result);
+  } catch(e) {
+    clearInterval(msgInterval);
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('formSection').style.display = 'block';
+    document.getElementById('analyzeBtn').disabled = false;
+    alert('Fehler bei der Analyse. Bitte versuche es erneut.');
+    console.error(e);
+  }
+}
+
+function scoreClass(s) { return s >= 8 ? 'good' : s >= 5 ? 'mid' : 'bad'; }
+
+function renderResults(r) {
+  document.getElementById('resultsSection').style.display = 'block';
+  document.getElementById('scoreNum').textContent = r.score;
+  document.getElementById('scoreTitle').textContent = r.score_title;
+  document.getElementById('scoreSummary').textContent = r.score_summary;
+
+  const offset = 270 - (r.score / 10) * 270;
+  setTimeout(() => { document.getElementById('scoreFill').style.strokeDashoffset = offset; }, 100);
+
+  const grid = document.getElementById('analysisGrid');
+  grid.innerHTML = '';
+  r.dimensions.forEach((d, i) => {
+    const card = document.createElement('div');
+    card.className = 'analysis-card';
+    card.innerHTML = `<div class="card-label">${d.label}</div><div class="card-score ${scoreClass(d.score)}">${d.score}/10</div><div class="card-verdict">${d.verdict}</div>`;
+    grid.appendChild(card);
+    setTimeout(() => card.classList.add('visible'), 150 + i * 80);
+  });
+
+  const wList = document.getElementById('weaknessList');
+  wList.innerHTML = '';
+  r.weaknesses.forEach(w => {
+    const el = document.createElement('div');
+    el.className = 'weakness-item';
+    el.innerHTML = `<strong>${w.title}</strong>${w.detail}`;
+    wList.appendChild(el);
+  });
+
+  const nameSection = document.getElementById('nameSection');
+  const hasNameCritique = r.name_critique && r.name_critique !== 'null' && r.name_proposals?.length > 0;
+  if (hasNameCritique) {
+    nameSection.style.display = 'block';
+    const nList = document.getElementById('nameList');
+    nList.innerHTML = '';
+    r.name_proposals.forEach(n => {
+      const el = document.createElement('div');
+      el.className = 'name-item';
+      el.innerHTML = `<span>@${n}</span><span class="name-copy-hint">Tippe zum Kopieren</span>`;
+      el.onclick = () => navigator.clipboard.writeText(n).then(() => {
+        el.classList.add('copied');
+        el.querySelector('.name-copy-hint').textContent = '✓ Kopiert';
+        setTimeout(() => { el.classList.remove('copied'); el.querySelector('.name-copy-hint').textContent = 'Tippe zum Kopieren'; }, 2000);
+      });
+      nList.appendChild(el);
+    });
+    setTimeout(() => nameSection.classList.add('visible'), 400);
+  } else {
+    nameSection.style.display = 'none';
+  }
+
+  setTimeout(() => document.getElementById('weaknessSection').classList.add('visible'), 500);
+
+  const bList = document.getElementById('bioList');
+  bList.innerHTML = '';
+  r.bio_proposals.forEach(b => {
+    const el = document.createElement('div');
+    el.className = 'bio-item';
+    el.innerHTML = `<div class="bio-text">${b.replace(/\n/g, '<br>')}</div><div class="copy-hint">Tippe zum Kopieren</div>`;
+    el.onclick = () => navigator.clipboard.writeText(b).then(() => {
+      el.classList.add('copied');
+      el.querySelector('.copy-hint').textContent = '✓ Kopiert';
+      setTimeout(() => { el.classList.remove('copied'); el.querySelector('.copy-hint').textContent = 'Tippe zum Kopieren'; }, 2000);
+    });
+    bList.appendChild(el);
+  });
+  setTimeout(() => document.getElementById('bioSection').classList.add('visible'), 700);
+
+  const cList = document.getElementById('ctaList');
+  cList.innerHTML = '';
+  r.cta_ideas.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'cta-item';
+    el.innerHTML = `<strong>${c.label}</strong>${c.text}`;
+    cList.appendChild(el);
+  });
+  setTimeout(() => document.getElementById('ctaSection').classList.add('visible'), 900);
+
+  setTimeout(() => document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+}
+</script>
+</body>
+</html>
