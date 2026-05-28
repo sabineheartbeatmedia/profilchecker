@@ -1,4 +1,7 @@
+const https = require('https');
+
 exports.handler = async function (event) {
+  // CORS Vorab-Prüfung (OPTIONS)
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
@@ -18,27 +21,50 @@ exports.handler = async function (event) {
   try {
     const { prompt } = JSON.parse(event.body);
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1500,
-        messages: [{ role: "user", content: prompt }],
-      }),
+    // Hier bereiten wir die Daten für Anthropic vor
+    const postData = JSON.stringify({
+      model: "claude-3-5-sonnet-20241022", // Standard stabiler Modellname (ggf. anpassen falls nötig)
+      max_tokens: 2000,
+      messages: [{ role: "user", content: prompt }],
     });
 
-    const data = await response.json();
+    // Wir senden die Anfrage über das sichere Node.js-eigene HTTPS Modul (vermeidet den fetch-Fehler)
+    const apiResponse = await new Promise((resolve, reject) => {
+      const options = {
+        hostname: 'api.anthropic.com',
+        path: '/v1/messages',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      };
 
-    if (!response.ok) {
+      const req = https.request(options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          resolve({
+            statusCode: res.statusCode,
+            body: data
+          });
+        });
+      });
+
+      req.on('error', (e) => { reject(e); });
+      req.write(postData);
+      req.end();
+    });
+
+    const responseBody = JSON.parse(apiResponse.body);
+
+    if (apiResponse.statusCode !== 200) {
       return {
-        statusCode: response.status,
+        statusCode: apiResponse.statusCode,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-        body: JSON.stringify({ error: data.error?.message || JSON.stringify(data) }),
+        body: JSON.stringify({ error: responseBody.error?.message || "Anthropic API Error" }),
       };
     }
 
@@ -48,13 +74,14 @@ exports.handler = async function (event) {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
       },
-      body: JSON.stringify({ content: data.content }),
+      body: JSON.stringify({ content: responseBody.content }),
     };
+
   } catch (err) {
     return {
       statusCode: 500,
       headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ error: err.message, stack: err.stack }),
+      body: JSON.stringify({ error: err.message }),
     };
   }
 };
