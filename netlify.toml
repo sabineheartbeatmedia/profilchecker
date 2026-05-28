@@ -1,5 +1,10 @@
 [build]
+  publish = "."
   environment = { NODE_VERSION = "20" }
 
-[functions]
-  directory = "netlify/functions"
+[[redirects]]
+  from = "/.netlify/functions/claude"
+  to = "https://api.anthropic.com/v1/messages"
+  status = 200
+  force = true
+  headers = { "x-api-key" = "{env:MY_ANTHROPIC_KEY}", "anthropic-version" = "2023-06-01" }
